@@ -1,0 +1,25 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <!-- File Sheet -->
+  <rect x="28" y="24" width="72" height="80" rx="8" fill="#ffffff" opacity="0.95"/>
+  <rect x="36" y="34" width="34" height="26" rx="4" fill="#6366f1"/>
+  <!-- Target Crosshair / Spec Fit lines -->
+  <line x1="80" y1="40" x2="90" y2="40" stroke="#475569" stroke-width="4" stroke-linecap="round"/>
+  <line x1="80" y1="50" x2="90" y2="50" stroke="#475569" stroke-width="4" stroke-linecap="round"/>
+  <line x1="36" y1="70" x2="92" y2="70" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+  <line x1="36" y1="80" x2="75" y2="80" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+  <line x1="36" y1="90" x2="60" y2="90" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+  <!-- Check badge -->
+  <circle cx="92" cy="92" r="16" fill="#10b981"/>
+  <path d="M86 92 l4 4 l8 -8" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

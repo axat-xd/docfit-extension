@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DocFit - File Spec Optimizer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="logo-group">
+        <div class="logo-icon-wrapper">
+          <img src="icons/icon48.png" alt="DocFit Logo" class="logo-img">
+        </div>
+        <div>
+          <div class="brand-row">
+            <h1 class="brand-title">DocFit</h1>
+            <span class="version-tag">v1.0</span>
+          </div>
+          <p class="brand-subtitle">Portal-Ready File & Spec Optimizer</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="offline-pill" title="100% Local. No files uploaded to any server.">
+          <span class="dot-indicator"></span> 100% Offline
+        </span>
+        <button id="btnSidePanel" class="icon-btn" title="Open in Chrome Side Panel">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <line x1="15" y1="3" x2="15" y2="21"/>
+          </svg>
+        </button>
+        <button id="btnNewTab" class="icon-btn" title="Open in Full Tab">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Quick Presets Carousel -->
+    <section class="presets-section">
+      <div class="section-label">
+        <span>⚡ Quick Portal Presets</span>
+        <span class="preset-hint">Auto-fills official portal standards</span>
+      </div>
+      <div class="presets-grid" id="presetsContainer">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+
+    <!-- Step 1: Upload Dropzone -->
+    <section class="step-card" id="uploadSection">
+      <div class="card-header">
+        <div class="step-badge">1</div>
+        <div class="card-title-group">
+          <h2 class="card-title">Upload File</h2>
+          <p class="card-desc">Drag & drop or paste from clipboard (Ctrl+V)</p>
+        </div>
+      </div>
+
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" accept="image/*,.pdf,.html,.htm,.svg" class="file-input-hidden">
+        <div class="dropzone-content">
+          <div class="upload-icon-circle">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <p class="dropzone-primary-text">Click to browse or drop file here</p>
+          <p class="dropzone-subtext">JPG, PNG, WEBP, PDF, HTML, SVG • Up to 50MB</p>
+        </div>
+      </div>
+
+      <!-- File Loaded Summary Card -->
+      <div class="file-summary-card hidden" id="fileSummaryCard">
+        <div class="summary-left">
+          <div class="file-type-icon" id="fileTypeIcon">📄</div>
+          <div class="file-meta-text">
+            <div class="file-name" id="fileName" title="">document.pdf</div>
+            <div class="file-specs-pill-row">
+              <span class="spec-pill" id="fileOrigSize">0 KB</span>
+              <span class="spec-pill" id="fileOrigDim">0 × 0 px</span>
+              <span class="spec-pill" id="fileOrigDpi">72 DPI</span>
+              <span class="spec-pill format-pill" id="fileOrigFormat">JPG</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn-text-danger" id="btnRemoveFile" title="Remove file">✕ Remove</button>
+      </div>
+
+      <!-- PDF Specific Controls (if PDF uploaded) -->
+      <div class="pdf-controls-card hidden" id="pdfControlsCard">
+        <div class="pdf-notice-row">
+          <span>📄 PDF Document Detected (<span id="pdfTotalPages">1</span> page(s))</span>
+          <div class="page-select-group">
+            <label for="pdfPageSelect">Render Page:</label>
+            <select id="pdfPageSelect" class="form-select mini-select"></select>
+          </div>
+        </div>
+      </div>
+
+      <!-- PDF Password Required Card -->
+      <div class="pdf-password-card hidden" id="pdfPasswordCard">
+        <div class="pdf-password-header">
+          <div class="lock-icon-circle">🔒</div>
+          <div>
+            <div class="lock-card-title">Password-Protected PDF</div>
+            <div class="lock-card-desc">Enter password to decrypt, optimize and export unlocked</div>
+          </div>
+        </div>
+        <div class="password-input-row">
+          <div class="password-field-wrapper">
+            <input type="password" id="pdfPasswordInput" class="form-input password-input" placeholder="Enter PDF password (e.g. DOB, PAN)..." autocomplete="off">
+            <button type="button" id="btnTogglePassword" class="btn-toggle-eye" title="Show/Hide Password">👁️</button>
+          </div>
+          <button type="button" id="btnUnlockPdf" class="btn-unlock-action">
+            <span class="btn-unlock-text">Unlock & Load</span>
+            <span class="btn-unlock-spinner hidden"></span>
+          </button>
+        </div>
+        <div class="password-error-msg hidden" id="passwordErrorMsg">
+          ⚠️ Incorrect password. Please check and try again.
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 2: Configuration & Specs -->
+    <section class="step-card hidden" id="configSection">
+      <div class="card-header">
+        <div class="step-badge">2</div>
+        <div class="card-title-group">
+          <h2 class="card-title">Target Specifications</h2>
+          <p class="card-desc">Configure output format, dimensions, DPI, and size limits</p>
+        </div>
+      </div>
+
+      <!-- Format Selector -->
+      <div class="form-group">
+        <label class="form-label">
+          <span>Output Format</span>
+          <span class="form-label-tip" id="formatTip">Choose destination format</span>
+        </label>
+        <div class="format-chips-group" id="formatSelector">
+          <button type="button" class="format-chip active" data-format="image/jpeg">JPEG / JPG</button>
+          <button type="button" class="format-chip" data-format="image/png">PNG</button>
+          <button type="button" class="format-chip" data-format="image/webp">WEBP</button>
+          <button type="button" class="format-chip" data-format="application/pdf">PDF</button>
+        </div>
+        <p class="field-hint" id="formatHelperText">Recommended for government photos, visa applications, and strict KB limits.</p>
+      </div>
+
+      <!-- Dimensions / Resize Mode Tabs -->
+      <div class="form-group">
+        <label class="form-label">
+          <span>Dimensions & Resizing</span>
+          <span class="form-label-tip" id="currentDimPreview">Original: 100%</span>
+        </label>
+        <div class="segmented-control" id="resizeModeSelector">
+          <button type="button" class="seg-btn active" data-mode="percentage">Percentage (%)</button>
+          <button type="button" class="seg-btn" data-mode="exact">Exact Dimensions</button>
+          <button type="button" class="seg-btn" data-mode="crop">Crop & Aspect Ratio</button>
+        </div>
+
+        <!-- Mode A: Percentage -->
+        <div class="sub-mode-panel" id="panelPercentage">
+          <div class="slider-row">
+            <input type="range" id="scaleSlider" min="10" max="200" value="100" class="slider-range">
+            <div class="slider-val-box">
+              <input type="number" id="scaleNumber" min="5" max="500" value="100" class="number-input-mini">
+              <span>%</span>
+            </div>
+          </div>
+          <div class="quick-chips-row">
+            <button type="button" class="chip-sm" data-pct="25">25%</button>
+            <button type="button" class="chip-sm" data-pct="50">50%</button>
+            <button type="button" class="chip-sm" data-pct="75">75%</button>
+            <button type="button" class="chip-sm active" data-pct="100">100%</button>
+            <button type="button" class="chip-sm" data-pct="150">150%</button>
+          </div>
+          <p class="field-hint">Scales image up or down proportionally while preserving original aspect ratio.</p>
+        </div>
+
+        <!-- Mode B: Exact Dimensions -->
+        <div class="sub-mode-panel hidden" id="panelExact">
+          <div class="exact-dims-grid">
+            <div class="input-with-label">
+              <span class="sub-label">Width</span>
+              <input type="number" id="exactWidthInput" placeholder="e.g. 3.5" step="any" class="form-input">
+            </div>
+            <div class="dim-separator">×</div>
+            <div class="input-with-label">
+              <span class="sub-label">Height</span>
+              <input type="number" id="exactHeightInput" placeholder="e.g. 4.5" step="any" class="form-input">
+            </div>
+            <div class="input-with-label unit-col">
+              <span class="sub-label">Unit</span>
+              <select id="exactUnitSelect" class="form-select">
+                <option value="px">Pixels (px)</option>
+                <option value="cm" selected>Centimeters (cm)</option>
+                <option value="mm">Millimeters (mm)</option>
+                <option value="in">Inches (in)</option>
+              </select>
+            </div>
+          </div>
+          <div class="lock-aspect-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="lockAspectCheckbox" checked>
+              <span>Lock aspect ratio (prevents stretching/distortion)</span>
+            </label>
+            <span class="pixel-calc-badge" id="pixelCalcBadge">≈ 413 × 531 px</span>
+          </div>
+          <p class="field-hint">Physical units (cm, mm, in) are automatically converted to exact pixels using your chosen DPI.</p>
+        </div>
+
+        <!-- Mode C: Interactive Crop & Aspect Ratio -->
+        <div class="sub-mode-panel hidden" id="panelCrop">
+          <div class="crop-toolbar">
+            <label for="aspectRatioSelect">Aspect Ratio:</label>
+            <select id="aspectRatioSelect" class="form-select mini-select">
+              <option value="free">Free / Unconstrained</option>
+              <option value="3.5:4.5" selected>3.5:4.5 (Passport / Exam)</option>
+              <option value="1:1">1:1 (Square / Visa)</option>
+              <option value="7:3">7:3 (Digital Signature)</option>
+              <option value="4:3">4:3 Standard</option>
+              <option value="16:9">16:9 Widescreen</option>
+              <option value="1:1.414">A4 Document</option>
+              <option value="original">Original Ratio</option>
+            </select>
+            <button type="button" id="btnResetCrop" class="chip-sm">Reset Box</button>
+          </div>
+          <div class="cropper-container-wrapper" id="cropperWrapper">
+            <!-- Cropper rendered here -->
+          </div>
+          <p class="field-hint">Drag handles or the center box to frame your photo or signature perfectly.</p>
+        </div>
+      </div>
+
+      <!-- DPI (Dots Per Inch) -->
+      <div class="form-group">
+        <label class="form-label">
+          <span>Resolution (DPI)</span>
+          <span class="form-label-tip">Physical Print Density</span>
+        </label>
+        <div class="dpi-selector-row">
+          <div class="quick-chips-row dpi-chips" id="dpiChips">
+            <button type="button" class="chip-sm" data-dpi="72">72 (Web)</button>
+            <button type="button" class="chip-sm" data-dpi="150">150 (Draft)</button>
+            <button type="button" class="chip-sm" data-dpi="200">200 (Govt)</button>
+            <button type="button" class="chip-sm active" data-dpi="300">300 (Passport)</button>
+          </div>
+          <div class="custom-dpi-input-box">
+            <input type="number" id="customDpiInput" value="300" min="50" max="1200" class="number-input-mini">
+            <span>DPI</span>
+          </div>
+        </div>
+        <p class="field-hint">Directly injects density tags into JPEG JFIF and PNG headers. Essential for official portals that validate print resolution.</p>
+      </div>
+
+      <!-- Target File Size Range -->
+      <div class="form-group">
+        <div class="label-with-toggle">
+          <label class="form-label" style="margin-bottom:0;">
+            <span>Target File Size Range (KB)</span>
+          </label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="enforceSizeToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div id="targetSizeInputsContainer">
+          <div class="range-inputs-grid">
+            <div class="input-with-label">
+              <span class="sub-label">Min Size (KB)</span>
+              <input type="number" id="minKbInput" placeholder="e.g. 20" value="20" min="0" class="form-input">
+            </div>
+            <div class="range-dash">—</div>
+            <div class="input-with-label">
+              <span class="sub-label">Max Size (KB)</span>
+              <input type="number" id="maxKbInput" placeholder="e.g. 50" value="50" min="1" class="form-input">
+            </div>
+          </div>
+          <div class="quick-chips-row" style="margin-top:8px;">
+            <button type="button" class="chip-sm active" data-size="20-50">20–50 KB (Passport)</button>
+            <button type="button" class="chip-sm" data-size="10-20">10–20 KB (Signature)</button>
+            <button type="button" class="chip-sm" data-size="0-200">&lt; 200 KB (ID/Cert)</button>
+            <button type="button" class="chip-sm" data-size="0-500">&lt; 500 KB (Marksheet)</button>
+          </div>
+          <p class="field-hint">DocFit uses in-memory binary search compression to ensure your file falls strictly between min and max KB.</p>
+        </div>
+      </div>
+
+      <!-- PDF Specific Output Options (if output is PDF) -->
+      <div class="form-group hidden" id="pdfOutputOptions">
+        <label class="form-label">
+          <span>PDF Page Layout</span>
+        </label>
+        <div class="pdf-layout-chips">
+          <select id="pdfPageSizeSelect" class="form-select">
+            <option value="A4" selected>Standard A4 Page (595 × 842 pt)</option>
+            <option value="Letter">US Letter (612 × 792 pt)</option>
+            <option value="Fit">Fit to Image Dimensions</option>
+          </select>
+        </div>
+
+        <!-- PDF Password Protection & Security -->
+        <div class="pdf-security-section">
+          <label class="form-label" style="margin-top: 10px;">
+            <span>PDF Security & Encryption</span>
+            <span class="form-label-tip">Output Protection</span>
+          </label>
+          <div class="protection-cards-list">
+            <label class="protect-card-choice active" data-protect="none">
+              <input type="radio" name="pdfProtectRadio" value="none" checked class="protect-radio">
+              <div class="protect-choice-text">
+                <span class="protect-title">🔓 No Password (Unlocked)</span>
+                <span class="protect-desc">Recommended for job, visa & exam portals</span>
+              </div>
+            </label>
+
+            <label class="protect-card-choice hidden" id="cardSamePassword" data-protect="same">
+              <input type="radio" name="pdfProtectRadio" value="same" class="protect-radio">
+              <div class="protect-choice-text">
+                <span class="protect-title">🔒 Keep Same Password</span>
+                <span class="protect-desc">Re-encrypt output with the original document password</span>
+              </div>
+            </label>
+
+            <label class="protect-card-choice" data-protect="new">
+              <input type="radio" name="pdfProtectRadio" value="new" class="protect-radio">
+              <div class="protect-choice-text">
+                <span class="protect-title">🔑 Set New Password</span>
+                <span class="protect-desc">Encrypt output with your own custom password</span>
+              </div>
+            </label>
+          </div>
+
+          <!-- New Password Input Row (hidden until "Set New Password" is chosen) -->
+          <div class="new-password-input-panel hidden" id="newPasswordPanel">
+            <span class="sub-label">Enter New PDF Password</span>
+            <div class="password-field-wrapper">
+              <input type="password" id="pdfNewPasswordInput" class="form-input password-input" placeholder="Enter password to lock output PDF..." autocomplete="off">
+              <button type="button" id="btnToggleNewPassword" class="btn-toggle-eye" title="Show/Hide Password">👁️</button>
+            </div>
+            <p class="field-hint">Anyone opening this generated PDF will be required to enter this password.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <div class="action-btn-row">
+        <button type="button" id="btnProcess" class="btn-primary-action">
+          <span class="btn-text">⚡ Fit & Optimize File</span>
+          <span class="btn-spinner hidden"></span>
+        </button>
+        <div class="process-status-text" id="processStatusText"></div>
+      </div>
+    </section>
+
+    <!-- Step 3: Result Card -->
+    <section class="step-card hidden" id="resultSection">
+      <div class="card-header">
+        <div class="step-badge success-badge">✓</div>
+        <div class="card-title-group">
+          <h2 class="card-title">Ready for Upload!</h2>
+          <p class="card-desc">Your file was tailored to the exact specifications</p>
+        </div>
+      </div>
+
+      <div class="result-stats-card">
+        <!-- Range validation alert badge -->
+        <div class="status-banner" id="statusBanner">
+          <span class="status-icon">✅</span>
+          <span class="status-msg" id="statusMessage">Output: 38.4 KB (Within 20–50 KB target)</span>
+        </div>
+
+        <div class="stats-comparison-grid">
+          <div class="stat-col">
+            <span class="stat-head">ORIGINAL</span>
+            <div class="stat-item"><span class="stat-label">Size:</span> <span class="stat-val" id="resOrigSize">-</span></div>
+            <div class="stat-item"><span class="stat-label">Dimensions:</span> <span class="stat-val" id="resOrigDim">-</span></div>
+            <div class="stat-item"><span class="stat-label">DPI:</span> <span class="stat-val" id="resOrigDpi">-</span></div>
+            <div class="stat-item"><span class="stat-label">Format:</span> <span class="stat-val" id="resOrigFmt">-</span></div>
+          </div>
+          <div class="stat-divider">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </div>
+          <div class="stat-col highlight-col">
+            <span class="stat-head">OPTIMIZED (DOCFIT)</span>
+            <div class="stat-item"><span class="stat-label">Size:</span> <span class="stat-val stat-success" id="resFinalSize">-</span></div>
+            <div class="stat-item"><span class="stat-label">Dimensions:</span> <span class="stat-val" id="resFinalDim">-</span></div>
+            <div class="stat-item"><span class="stat-label">DPI:</span> <span class="stat-val stat-success" id="resFinalDpi">-</span></div>
+            <div class="stat-item"><span class="stat-label">Format:</span> <span class="stat-val" id="resFinalFmt">-</span></div>
+          </div>
+        </div>
+
+        <!-- Live Visual Preview -->
+        <div class="result-preview-box">
+          <div class="preview-media-container" id="previewContainer">
+            <img id="resultImagePreview" class="result-img" alt="Result Preview">
+            <div id="pdfResultBadge" class="pdf-preview-box hidden">
+              <span class="pdf-large-icon">📑</span>
+              <span class="pdf-badge-title" id="pdfPreviewTitle">Document.pdf</span>
+              <span class="pdf-badge-sub" id="pdfPreviewSubtitle">Ready to download</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Single File Output Action Buttons -->
+        <div class="result-actions-grid" id="singleResultActions">
+          <button type="button" id="btnDownload" class="btn-download">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span id="downloadBtnText">Download File</span>
+          </button>
+          <button type="button" id="btnCopyClipboard" class="btn-secondary" title="Copy to clipboard">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <span id="copyBtnText">Copy</span>
+          </button>
+        </div>
+
+        <!-- Batch Download Action Buttons (shown when all pages are converted) -->
+        <div class="batch-actions-container hidden" id="batchResultActions">
+          <button type="button" id="btnDownloadZip" class="btn-download btn-block-action">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span id="downloadZipBtnText">📦 Download All as ZIP</span>
+          </button>
+          <button type="button" id="btnDownloadIndividual" class="btn-secondary btn-block-action" title="Download each image file separately">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <line x1="9" y1="3" x2="9" y2="21"/>
+              <line x1="15" y1="3" x2="15" y2="21"/>
+            </svg>
+            <span id="downloadIndividualBtnText">📂 Download Individual Files</span>
+          </button>
+        </div>
+
+        <div class="reset-row">
+          <button type="button" id="btnEditSettings" class="btn-link">← Adjust Specifications</button>
+          <button type="button" id="btnNewFile" class="btn-link">Upload New File</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Portal Guidelines & Tips Accordion -->
+    <footer class="app-footer">
+      <details class="help-accordion">
+        <summary>💡 Quick Guide: Portal Requirements FAQ</summary>
+        <div class="help-content">
+          <p><strong>Passport Photos:</strong> Usually require 3.5 × 4.5 cm, 200–300 DPI, and 20–50 KB in JPEG format.</p>
+          <p><strong>Digital Signatures:</strong> Usually 140 × 60 px, between 10–20 KB in JPEG or PNG.</p>
+          <p><strong>Why DPI matters:</strong> Portals check DPI to prevent blurry printouts on admit cards & passports. DocFit injects official JFIF/EXIF resolution headers.</p>
+          <p><strong>Privacy:</strong> All processing is done 100% on your laptop's memory. No data is stored or transmitted.</p>
+        </div>
+      </details>
+      <div class="footer-credit">
+        <span>DocFit v1.0 • Offline File Spec Engine</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Vendors and Modules -->
+  <script src="vendor/pdf.min.js"></script>
+  <script src="vendor/pdf-lib.min.js"></script>
+  <script src="vendor/jspdf.umd.min.js"></script>
+  <script src="vendor/jszip.min.js"></script>
+  <script src="vendor/html2canvas.min.js"></script>
+  <script src="js/dpi.js"></script>
+  <script src="js/presets.js"></script>
+  <script src="js/cropper.js"></script>
+  <script src="js/pdf-handler.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
