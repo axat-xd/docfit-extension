@@ -8,6 +8,16 @@ The versioning format follows:
 
 ---
 
+## [1.1] - 2026-10-29
+### Added
+- **Custom Page Range Selection for Multi-Page PDFs:** Added flexible range parsing support (`1-3`, `1-3, 6, 7-10`, `2, 4, 8`).
+- Users can now extract, downscale, resize, and compress exact page subsets into individual high-res images and ZIP bundles.
+- Real-time syntax validation, dynamic page count badges (`X page(s)`), and immediate canvas preview of selected ranges.
+- Intelligent error handling with warnings for out-of-range pages without breaking the workflow.
+- Custom naming for generated ZIP archives based on the selected range (`docfit_[filename]_pages_1_2_3_300dpi.zip`).
+
+---
+
 ## [1.0] - 2026-10-25
 ### Initial Official Release
 - **100% Offline & Private:** Client-side in-memory processing. Zero external server uploads.

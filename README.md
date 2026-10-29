@@ -19,7 +19,7 @@
 - 🔄 **Multi-Format Conversions:**
   - **Image ➔ Image:** Convert between JPG, PNG, WEBP with exact size/DPI.
   - **Image ➔ PDF:** Embed photos/scans into clean A4 or Letter PDFs.
-  - **PDF ➔ Image:** Extract PDF pages into crisp 200/300 DPI JPGs or PNGs.
+  - **PDF ➔ Image:** Extract single pages, all pages, or custom page ranges (e.g. `1-3`, `1-3, 6, 7-10`) into crisp 200/300 DPI JPGs, PNGs, or ZIP bundles.
   - **HTML ➔ PDF / Image:** Render and capture web/markup files.
 - 📋 **Clipboard Paste:** Press `Ctrl + V` anywhere to instantly load an image from your clipboard.
 - ⚡ **Dual View (Side Panel + Popup):** Pin it as a Chrome Side Panel next to the portal you are filling out, or use it as a popup.

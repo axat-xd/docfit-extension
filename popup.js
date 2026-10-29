@@ -28,7 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
     minKb: 20,
     maxKb: 50,
     pdfPageSize: 'A4',
-    selectedPdfPage: 1,
+    selectedPdfPage: 'all',
+    customPdfRangeStr: '1-3',
+    customPdfPages: [1, 2, 3],
     totalPdfPages: 1,
     pdfPassword: '',
     pdfProtectChoice: 'none', // 'none', 'same', 'new'
@@ -50,6 +52,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const pdfControlsCard = document.getElementById('pdfControlsCard');
   const pdfPageSelect = document.getElementById('pdfPageSelect');
   const pdfTotalPages = document.getElementById('pdfTotalPages');
+  const pdfCustomRangeRow = document.getElementById('pdfCustomRangeRow');
+  const pdfCustomRangeInput = document.getElementById('pdfCustomRangeInput');
+  const pdfRangeCountBadge = document.getElementById('pdfRangeCountBadge');
+  const pdfRangePreviewText = document.getElementById('pdfRangePreviewText');
+  const pdfRangeErrorText = document.getElementById('pdfRangeErrorText');
   const pdfPasswordCard = document.getElementById('pdfPasswordCard');
   const pdfPasswordInput = document.getElementById('pdfPasswordInput');
   const btnTogglePassword = document.getElementById('btnTogglePassword');
@@ -407,12 +414,32 @@ document.addEventListener('DOMContentLoaded', () => {
       const val = e.target.value;
       if (val === 'all') {
         state.selectedPdfPage = 'all';
+        if (pdfCustomRangeRow) pdfCustomRangeRow.classList.add('hidden');
+        btnProcess.disabled = false;
         await renderPdfPage(1);
+      } else if (val === 'custom') {
+        state.selectedPdfPage = 'custom';
+        if (pdfCustomRangeRow) pdfCustomRangeRow.classList.remove('hidden');
+        updateCustomRangeUI();
+        if (state.customPdfPages.length > 0) {
+          await renderPdfPage(state.customPdfPages[0]);
+        }
       } else {
         state.selectedPdfPage = parseInt(val, 10);
+        if (pdfCustomRangeRow) pdfCustomRangeRow.classList.add('hidden');
+        btnProcess.disabled = false;
         await renderPdfPage(state.selectedPdfPage);
       }
     });
+
+    if (pdfCustomRangeInput) {
+      pdfCustomRangeInput.addEventListener('input', async () => {
+        const isValid = updateCustomRangeUI();
+        if (isValid && state.customPdfPages.length > 0) {
+          await renderPdfPage(state.customPdfPages[0]);
+        }
+      });
+    }
 
     // Main Process Execution
     btnProcess.addEventListener('click', executeProcess);
@@ -674,13 +701,18 @@ document.addEventListener('DOMContentLoaded', () => {
       lockAspectCheckbox.checked = true;
       updatePercentageChipsUI();
 
-      // Populate page selector with "All Pages" option
+      // Populate page selector with "All Pages" and "Custom Range" options
       pdfPageSelect.innerHTML = '';
       if (loadRes.numPages > 1) {
         const allOpt = document.createElement('option');
         allOpt.value = 'all';
         allOpt.textContent = `📚 All Pages (Batch Export - ${loadRes.numPages} pages)`;
         pdfPageSelect.appendChild(allOpt);
+
+        const customOpt = document.createElement('option');
+        customOpt.value = 'custom';
+        customOpt.textContent = `🎯 Custom Range (e.g. 1-3, 6, 7-10)`;
+        pdfPageSelect.appendChild(customOpt);
       }
       for (let p = 1; p <= loadRes.numPages; p++) {
         const opt = document.createElement('option');
@@ -688,6 +720,15 @@ document.addEventListener('DOMContentLoaded', () => {
         opt.textContent = `Page ${p}`;
         pdfPageSelect.appendChild(opt);
       }
+
+      if (pdfCustomRangeInput) {
+        const defaultRange = loadRes.numPages >= 3 ? '1-3' : (loadRes.numPages === 2 ? '1-2' : '1');
+        pdfCustomRangeInput.value = defaultRange;
+      }
+      if (pdfCustomRangeRow) {
+        pdfCustomRangeRow.classList.add('hidden');
+      }
+      state.selectedPdfPage = loadRes.numPages > 1 ? 'all' : 1;
 
       await renderPdfPage(1);
     } catch (err) {
@@ -714,6 +755,115 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.cropper) {
       initCropper();
     }
+  }
+
+  /**
+   * Parse user-entered page ranges like "1-3", "1-3,6,7-10", "1, 2, 5"
+   */
+  function parsePageRange(inputStr, maxPages) {
+    if (!inputStr || !inputStr.trim()) {
+      return { pages: [], error: 'Please enter page numbers or ranges (e.g. 1-3, 6, 7-10)' };
+    }
+
+    const parts = inputStr.split(',').map(s => s.trim()).filter(Boolean);
+    if (parts.length === 0) {
+      return { pages: [], error: 'Please enter page numbers or ranges (e.g. 1-3, 6, 7-10)' };
+    }
+
+    const pageSet = new Set();
+    const invalidTokens = [];
+    const outOfRangeTokens = [];
+
+    for (const part of parts) {
+      // Single page number
+      if (/^\d+$/.test(part)) {
+        const p = parseInt(part, 10);
+        if (p < 1 || (maxPages && p > maxPages)) {
+          outOfRangeTokens.push(p);
+        } else {
+          pageSet.add(p);
+        }
+      } 
+      // Page range like "1-3" or "7-10"
+      else if (/^\d+\s*-\s*\d+$/.test(part)) {
+        const [startStr, endStr] = part.split('-').map(s => s.trim());
+        const start = parseInt(startStr, 10);
+        const end = parseInt(endStr, 10);
+        if (start <= 0 || end <= 0 || start > end) {
+          invalidTokens.push(part);
+        } else {
+          for (let p = start; p <= end; p++) {
+            if (maxPages && p > maxPages) {
+              outOfRangeTokens.push(p);
+            } else {
+              pageSet.add(p);
+            }
+          }
+        }
+      } else {
+        invalidTokens.push(part);
+      }
+    }
+
+    if (invalidTokens.length > 0) {
+      return { pages: [], error: `Invalid format: "${invalidTokens.join(', ')}". Use e.g. 1-3, 6, 7-10` };
+    }
+
+    if (pageSet.size === 0 && outOfRangeTokens.length > 0) {
+      return { pages: [], error: `Page(s) ${[...new Set(outOfRangeTokens)].join(', ')} exceed total pages (${maxPages})` };
+    }
+
+    const sortedPages = Array.from(pageSet).sort((a, b) => a - b);
+    let warning = null;
+    if (outOfRangeTokens.length > 0) {
+      warning = `Ignored out-of-range page(s) > ${maxPages}`;
+    }
+
+    return {
+      pages: sortedPages,
+      warning: warning,
+      error: sortedPages.length === 0 ? 'No valid pages found' : null
+    };
+  }
+
+  /**
+   * Validate and update Custom Page Range UI badge and status
+   */
+  function updateCustomRangeUI() {
+    if (!pdfCustomRangeInput) return false;
+    const rawVal = pdfCustomRangeInput.value.trim();
+    state.customPdfRangeStr = rawVal;
+    const res = parsePageRange(rawVal, state.totalPdfPages);
+
+    if (res.error) {
+      state.customPdfPages = [];
+      pdfRangeCountBadge.textContent = '0 pages';
+      pdfRangeCountBadge.style.background = 'rgba(239, 68, 68, 0.2)';
+      pdfRangeCountBadge.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+      pdfRangeCountBadge.style.color = '#fca5a5';
+      pdfRangeErrorText.textContent = res.error;
+      pdfRangeErrorText.classList.remove('hidden');
+      pdfRangePreviewText.classList.add('hidden');
+      btnProcess.disabled = true;
+      return false;
+    }
+
+    state.customPdfPages = res.pages;
+    const count = res.pages.length;
+    pdfRangeCountBadge.textContent = `${count} page${count === 1 ? '' : 's'}`;
+    pdfRangeCountBadge.style.background = 'rgba(99, 102, 241, 0.2)';
+    pdfRangeCountBadge.style.borderColor = 'rgba(99, 102, 241, 0.35)';
+    pdfRangeCountBadge.style.color = '#a5b4fc';
+
+    let previewDesc = `Selected: Pages ${res.pages.join(', ')}`;
+    if (res.warning) {
+      previewDesc += ` (${res.warning})`;
+    }
+    pdfRangePreviewText.textContent = previewDesc;
+    pdfRangePreviewText.classList.remove('hidden');
+    pdfRangeErrorText.classList.add('hidden');
+    btnProcess.disabled = false;
+    return true;
   }
 
   /**
@@ -826,9 +976,27 @@ document.addEventListener('DOMContentLoaded', () => {
         outputPdfPassword: outputPdfPassword
       };
 
-      // Batch Processing for "All Pages"
-      if (state.fileType === 'pdf' && state.selectedPdfPage === 'all' && state.totalPdfPages > 1) {
-        btnText.textContent = `Processing Pages (0/${state.totalPdfPages})...`;
+      // Batch Processing for "All Pages" or "Custom Range"
+      let pagesToProcess = null;
+      if (state.fileType === 'pdf') {
+        if (state.selectedPdfPage === 'all' && state.totalPdfPages > 1) {
+          pagesToProcess = Array.from({ length: state.totalPdfPages }, (_, i) => i + 1);
+        } else if (state.selectedPdfPage === 'custom') {
+          const isValid = updateCustomRangeUI();
+          if (!isValid || state.customPdfPages.length === 0) {
+            alert('Please specify a valid page range (e.g. 1-3, 6, 7-10).');
+            btnProcess.disabled = false;
+            btnText.textContent = '⚡ Fit & Optimize File';
+            btnSpinner.classList.add('hidden');
+            return;
+          }
+          pagesToProcess = state.customPdfPages;
+        }
+      }
+
+      if (pagesToProcess && pagesToProcess.length > 1) {
+        const totalToProcess = pagesToProcess.length;
+        btnText.textContent = `Processing Pages (0/${totalToProcess})...`;
         const batchResults = [];
         const zip = new window.JSZip();
         const baseName = state.fileName.replace(/\.[^/.]+$/, '');
@@ -837,9 +1005,11 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (state.activeFormat === 'image/webp') ext = 'webp';
         else if (state.activeFormat === 'application/pdf') ext = 'pdf';
 
-        for (let pageNum = 1; pageNum <= state.totalPdfPages; pageNum++) {
-          processStatusText.textContent = `Rendering page ${pageNum} of ${state.totalPdfPages}...`;
-          btnText.textContent = `Processing (${pageNum}/${state.totalPdfPages})...`;
+        for (let i = 0; i < pagesToProcess.length; i++) {
+          const pageNum = pagesToProcess[i];
+          const currentCount = i + 1;
+          processStatusText.textContent = `Rendering page ${pageNum} (${currentCount}/${totalToProcess})...`;
+          btnText.textContent = `Processing (${currentCount}/${totalToProcess})...`;
 
           const pageRes = await PdfHandler.renderPdfPageToCanvas(
             state.pdfDoc || state.fileBuffer,
@@ -879,6 +1049,11 @@ document.addEventListener('DOMContentLoaded', () => {
         resultSection.classList.remove('hidden');
         resultSection.scrollIntoView({ behavior: 'smooth' });
         return;
+      }
+
+      // If single page selected via Custom Range (e.g. "4" or "2-2")
+      if (pagesToProcess && pagesToProcess.length === 1) {
+        await renderPdfPage(pagesToProcess[0]);
       }
 
       state.batchResults = null;
@@ -976,15 +1151,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('resFinalDpi').textContent = `${state.dpi} DPI`;
     document.getElementById('resFinalFmt').textContent = (state.activeFormat === 'application/pdf' ? 'PDF' : state.activeFormat.split('/')[1].toUpperCase());
 
+    const pageListStr = batchResults.map(b => b.page).join(', ');
     statusBanner.className = 'status-banner success';
-    statusMessage.textContent = `Batch Ready! Converted ${batchResults.length} pages to high-res images (${zipSizeMb} MB ZIP)`;
+    statusMessage.textContent = `Batch Ready! Converted ${batchResults.length} page(s) (${pageListStr}) to high-res images (${zipSizeMb} MB ZIP)`;
 
     // Media Preview
     resultImagePreview.classList.add('hidden');
     pdfResultBadge.classList.remove('hidden');
     const baseName = state.fileName.replace(/\.[^/.]+$/, '');
-    document.getElementById('pdfPreviewTitle').textContent = `docfit_${baseName}_all_${batchResults.length}_pages.zip`;
-    document.getElementById('pdfPreviewSubtitle').textContent = `📚 ${batchResults.length} Separate Images • ${zipSizeMb} MB ZIP • All at ${state.dpi} DPI`;
+    const rangeTag = state.selectedPdfPage === 'custom' ? `pages_${batchResults.map(b => b.page).join('_')}` : `all_${batchResults.length}_pages`;
+    document.getElementById('pdfPreviewTitle').textContent = `docfit_${baseName}_${rangeTag}.zip`;
+    document.getElementById('pdfPreviewSubtitle').textContent = `📚 ${batchResults.length} Separate Images (${pageListStr}) • ${zipSizeMb} MB ZIP • All at ${state.dpi} DPI`;
 
     // Show Batch Actions, Hide Single Actions
     singleResultActions.classList.add('hidden');
@@ -1000,10 +1177,13 @@ document.addEventListener('DOMContentLoaded', () => {
   function downloadZipFile() {
     if (!state.zipBlob) return;
     const baseName = state.fileName.replace(/\.[^/.]+$/, '');
+    const rangeTag = (state.selectedPdfPage === 'custom' && state.batchResults)
+      ? `pages_${state.batchResults.map(b => b.page).join('_')}`
+      : 'all_pages';
     const url = URL.createObjectURL(state.zipBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `docfit_${baseName}_all_pages_${state.dpi}dpi.zip`;
+    a.download = `docfit_${baseName}_${rangeTag}_${state.dpi}dpi.zip`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1141,6 +1321,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     fileSummaryCard.classList.add('hidden');
     pdfControlsCard.classList.add('hidden');
+    if (pdfCustomRangeRow) pdfCustomRangeRow.classList.add('hidden');
+    if (pdfCustomRangeInput) pdfCustomRangeInput.value = '1-3';
+    state.selectedPdfPage = 'all';
+    state.customPdfPages = [];
     if (pdfPasswordCard) pdfPasswordCard.classList.add('hidden');
     if (passwordErrorMsg) passwordErrorMsg.classList.add('hidden');
     configSection.classList.add('hidden');
